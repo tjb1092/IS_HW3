@@ -123,6 +123,7 @@ class NN:
 def main():
     nn = NN(2, [2, 2], [0.1, 0.1, 0.1], 2, 2)
 
+    X, y = data_load()
     epochs = 5000
     for epoch in range(epochs):
         X = np.array((1,1))
