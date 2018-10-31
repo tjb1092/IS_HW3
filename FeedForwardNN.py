@@ -26,6 +26,7 @@ class NN:
 
 
             w_ij = np.random.normal(0,sigma,(i,j))
+            print("Layer {}".format(L))
             print(w_ij)
             print(w_ij.shape)
             layers.append(w_ij)
@@ -38,63 +39,103 @@ class NN:
 
         #forward pass
         f_s_aq=[]
-        #s_aq = []
         for L in range(self.n):
             w_bar = self.layers[L]
             # Set the bias to 1, will override rest of values.
             h_q = np.ones((w_bar.shape[0]+1,1))
             if L==0:
+                #print("X")
+                #print(X_q)
+
                 dot_p = np.dot(w_bar,X_q)
+
 
             else:
                 dot_p = np.dot(w_bar,f_s_aq[L-1])
+                #print("in")
+                #print(f_s_aq[L-1])
+            #print("W")
+            #print(w_bar)
+            #print("dotp")
+            #print(dot_p)
             h_q[1:] = 1./(1.+np.exp(-dot_p))  # sigmoid activation
-            print(h_q)
-            input("pause")
+            #print("h_q")
+            #print(h_q)
             f_s_aq.append(h_q)
-            #s_aq.append(dot_p)
 
         dot_p = np.dot(self.layers[self.n],f_s_aq[self.n-1])
+        #print("in")
+        #print(f_s_aq[self.n-1])
+        #print(self.layers[self.n])
         y_hatq = 1./(1+np.exp(-dot_p))
-        print(y_hatq)
-        input("pasue")
+        #print("dotp")
+        #print(dot_p)
+        #print("yhat")
+        #print(y_hatq)
         f_s_aq.append(y_hatq)
-        #s_aq.append(dot_p)
+        print("predictions")
+        print(y_hatq)
+        #print(f_s_aq)
         print("Forward Pass Complete")
 
-        # Backward pass ( not currently modular)
-
-        #Compute output layer's errors
-        del_nq = (1-y_hatq)*y_hatq*(y_q - y_hatq)
+        # Backward pass: Compute output layer's errors
+        # Initialize using list comprehension
+        delq = [[] for k in range(self.n+1)]
+        delW = [[] for k in range(self.n+1)]
+        delq[-1] = (1-y_hatq)*y_hatq*(y_q - y_hatq)
+        #print("delq")
+        #print(delq[-1])
+        #print("in")
+        #print(f_s_aq[self.n-1].T)
         #delW= eta(L)*deltaq(L)*h(L-1)
-        delWn = self.LR[self.n] * np.dot(del_nq, f_s_aq[self.n-1].T)
+        delW[-1] = self.LR[self.n] * np.dot(delq[-1], f_s_aq[self.n-1].T)
+        #print("delW")
+        #print(delW[-1])
+        #input("pasue")
 
-        print(delWn)
-        input("pasue")
-        # Next layer:
-        del_1q = ((1-f_s_aq[self.n-1])*f_s_aq[self.n-1])[1:]*np.sum(del_nq*self.layers[self.n], axis=1).reshape(del_nq.shape)
-        #del_1q = del_1q.reshape(len(del_1q),1)
-        delW1 = self.LR[self.n-1]*np.dot(del_1q, f_s_aq[self.n-2].T)
-        print(delW1, delW1.shape)
-        input("pasue")
+        for L in range(self.n-1, -1, -1):
+            # Next layer:
+            #print("L", L)
+            # h[L] ^* W*delq[L+1]
+            delq[L] = ((1-f_s_aq[L])*f_s_aq[L])[1:]*np.dot(self.layers[L+1][:,1:].T,delq[L+1])
+            if L==0:
+                inputQ = X_q.T
+            else:
+                inputQ = f_s_aq[L-1].T
 
-        # Final layer:
-        del_0q = ((1-f_s_aq[self.n-2])*f_s_aq[self.n-2])[1:]*np.sum(del_1q*self.layers[self.n-1], axis=1).reshape(del_1q.shape)
-        #del_1q = del_1q.reshape(len(del_1q),1)
-        delW0 = self.LR[self.n-2]*np.dot(del_0q, X_q.T)
-        print(delW0, delW0.shape)
-        input("pasue")
+            #print("in")
+            #print(inputQ)
+            #print(delq[L])
 
+            delW[L] = self.LR[L]*np.dot(delq[L],inputQ)
+            #print(delW[L], delW[L].shape)
+            #input("pasue")
 
-
-
+        #print("delW")
+        #print(delW)
+        #print("W")
+        #print(self.layers)
+        # Apply weight update after data point has been applied
+        for i, W in enumerate(self.layers):
+            self.layers[i] = W + delW[i]
+        #print("after update")
+        #print(self.layers)
 def main():
-    nn = NN(2, [2,2], [0.001, 0.001, 0.001], 3, 2)
-#
-    X = np.array((0,1,2))
-    X = np.insert(X, 0, 1).reshape(X.shape[0]+1,1)  # Add bias term
-    y = np.array((0,1)).reshape(2,1)
-    nn.fit(X,y)
+    nn = NN(2, [2, 2], [0.1, 0.1, 0.1], 2, 2)
+
+    epochs = 5000
+    for epoch in range(epochs):
+        X = np.array((1,1))
+        X = np.insert(X, 0, 1).reshape(X.shape[0]+1,1)  # Add bias term
+        y = np.array((0,1)).reshape(2,1)
+        nn.fit(X,y)
+
+        X = np.array((-1, -1))
+        X = np.insert(X, 0, 1).reshape(X.shape[0]+1,1)  # Add bias term
+        y = np.array((1, 0)).reshape(2,1)
+        nn.fit(X,y)
+
+
 
 
 if __name__ == "__main__":

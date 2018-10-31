@@ -28,8 +28,10 @@ def label_load(fn):
         contents = f.readlines()
     # for each line
     for label in contents:
+        l = np.array((0,0,0,0,0,0,0,0,0,0))
         label = label[:-1]  #remove new-line character
-        label_array.append(int(label))  # Convert to int
+        l[int(label)] = 1  # Index to create one-hot array
+        label_array.append(l)  # Convert to int
 
     return label_array
 
@@ -62,8 +64,7 @@ def preprocessData():
     y = label_load(yfn)
 
     X = np.asarray(X)  # Convert to numpy array
-    y = np.asarray(y).reshape(len(y), 1)  # Reshape to make a 5000x1 matrix
-
+    y = np.asarray(y)  # Convert to numpy array
     # Data already normalized.
     return X, y
 
