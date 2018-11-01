@@ -3,6 +3,8 @@ from data_load import preprocessData, create_train_test_split
 import math
 import random
 import time
+import pickle
+import matplotlib.pyplot as plt
 class NN:
 	def __init__(self, n, H, LR, f, c, UpperTarget, LowerTarget, a):
 		self.n = n
@@ -60,11 +62,11 @@ class NN:
 		y_hatq = 1./(1+np.exp(-dot_p))
 		f_s_aq.append(y_hatq)
 
+		# Initialize using list comprehension
+		delq = [[] for k in range(self.n+1)]
+		delW = [[] for k in range(self.n+1)]
 		if tr_te == 0:
 			# Backward pass: Compute output layer's errors
-			# Initialize using list comprehension
-			delq = [[] for k in range(self.n+1)]
-			delW = [[] for k in range(self.n+1)]
 			delq[-1] = (1-y_hatq)*y_hatq*(y_q - y_hatq)
 			delW[-1] = self.LR[self.n] * np.dot(delq[-1], f_s_aq[self.n-1].T)
 			for L in range(self.n-1, -1, -1):
@@ -82,7 +84,7 @@ class NN:
 			for i, W in enumerate(self.layers):
 			    self.layers[i] = W + delW[i]
 
-			return delW, y_hatq
+		return delW, y_hatq
 
 	def update_weights(self, delW, past_delW, mode):
 
@@ -92,6 +94,9 @@ class NN:
 			else:
 				self.layers[i] = W + delW[i] + self.a * past_delW[i]
 
+def save_data(weights,data,LR,alpha):
+	save_info = {"Weights": weights, "Data": data, "LR": LR, "alpha":alpha}
+	pickle.dump(save_info, open("cached_run/saved_data.p","wb"))
 
 def main():
 	epochs = 500
@@ -103,6 +108,7 @@ def main():
 	x_shape = data["x_train"].shape
 	last_time = time.time()
 	hit_rates = []
+	epoch_arr = []
 	for epoch in range(epochs):
 
 		# Pick mini-back of training data
@@ -135,25 +141,53 @@ def main():
 			print("Epoch: {}".format(epoch))
 			hit_rate = correct / (mini_batch_per*x_shape[0])
 			hit_rates.append(hit_rate)
+			epoch_arr.append(epoch)
 			print("Hit Rate: {}".format(hit_rate))
 			print('Epoch took {:0.3f} seconds'.format(time.time()-last_time))
 			last_time = time.time()
 
 	# Evaulate Test Accuracy
-	correct=0
-	confusion_Matrix = np.zeros((10,10))  # Initialize counts
+	train_correct=0
+	confusion_Matrix_training = np.zeros((10,10))  # Initialize counts
+	for i, X in enumerate(data["x_train"]):
+		X = X.reshape(len(X),1)
+		y = data["y_train"][i].reshape(10,1)
+		delW, y_hatq = nn.fit(X,y, 1)
+		actual_class = np.argmax(y)
+		assigned_class = np.argmax(y_hatq)
+		confusion_Matrix_training[assigned_class, actual_class] += 1
+		if assigned_class == actual_class:
+			train_correct += 1
+
+	# This hurts me as a programmer
+	test_correct = 0
+	confusion_Matrix_testing = np.zeros((10,10))  # Initialize counts
 	for i, X in enumerate(data["x_test"]):
 		X = X.reshape(len(X),1)
 		y = data["y_test"][i].reshape(10,1)
 		delW, y_hatq = nn.fit(X,y, False)
-		print()
 		actual_class = np.argmax(y)
 		assigned_class = np.argmax(y_hatq)
-		confusion_Matrix[assigned_class, actual_class] += 1
+		confusion_Matrix_testing[assigned_class, actual_class] += 1
 		if assigned_class == actual_class:
-			correct += 1
+			test_correct += 1
 
-	print("Test Accuracy: {}".format(correct/1000.))
-	print(confusion_Matrix)
+	print("Training Accuracy: {}".format(train_correct/4000.))
+	print(confusion_Matrix_training)
+	print("Test Accuracy: {}".format(test_correct/1000.))
+	print(confusion_Matrix_testing)
+
+	# Plot error rate per epoch
+	fig, ax = plt.subplots(figsize=(6,6))
+	error_rates = [1-x for x in hit_rates]
+	ax.plot(epoch_arr, error_rates, label="Training Error Rate")
+	ax.set_xlabel("Epoch")
+	ax.set_ylabel("Error Rate")
+	ax.set_title("Error Rates per Epoch")
+	ax.legend()
+	plt.show()
+
+	save_data(nn.layers, data, nn.LR, nn.a)
+
 if __name__ == "__main__":
     main()
