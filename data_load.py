@@ -6,34 +6,34 @@ import matplotlib.pyplot as plt
 
 def data_load(fn):
 	# Open text file and create and read in each line
-    X_array = []
-    with open(fn) as f:
-        contents = f.readlines()
-    # for each line
-    for data in contents:
-        parsedData = data.split("\t")  # Split via space deliminator
-        parsedData[-1] = parsedData[-1][:-1]  #remove new-line character
-        # Create data tuple by casting text to floats and add label
+	X_array = []
+	with open(fn) as f:
+		contents = f.readlines()
+	# for each line
+	for data in contents:
+		parsedData = data.split("\t")  # Split via space deliminator
+		parsedData[-1] = parsedData[-1][:-1]  #remove new-line character
+		# Create data tuple by casting text to floats and add label
 
-        row = np.zeros((784))
-        for i, feature in enumerate(parsedData):
-            row[i] = float(feature)
-        X_array.append(row)
+		row = np.zeros((784))
+		for i, feature in enumerate(parsedData):
+			row[i] = float(feature)
+		X_array.append(row)
 
-    return X_array
+	return X_array
 
 def label_load(fn):
-    label_array = []
-    with open(fn) as f:
-        contents = f.readlines()
-    # for each line
-    for label in contents:
-        l = np.array((0,0,0,0,0,0,0,0,0,0))
-        label = label[:-1]  #remove new-line character
-        l[int(label)] = 1  # Index to create one-hot array
-        label_array.append(l)  # Convert to int
+	label_array = []
+	with open(fn) as f:
+		contents = f.readlines()
+	# for each line
+	for label in contents:
+		l = np.array((0,0,0,0,0,0,0,0,0,0))
+		label = label[:-1]  #remove new-line character
+		l[int(label)] = 1  # Index to create one-hot array
+		label_array.append(l)  # Convert to int
 
-    return label_array
+	return label_array
 
 
 def create_train_test_split(x, y, percent):
@@ -55,18 +55,20 @@ def create_train_test_split(x, y, percent):
 	return {"x_train": x_train, "y_train": y_train, "x_test": x_test, "y_test": y_test}
 
 def preprocessData():
-    # Read in data
-    Xfn = "MNISTnumImages5000.txt"
-    yfn = "MNISTnumLabels5000.txt"
+	# Read in data
+	Xfn = "MNISTnumImages5000.txt"
+	yfn = "MNISTnumLabels5000.txt"
 
-    # Pass data array into functions to append everything together
-    X = data_load(Xfn)
-    y = label_load(yfn)
+	# Pass data array into functions to append everything together
+	X = data_load(Xfn)
+	y = label_load(yfn)
+	ones = np.ones((len(X), 1))
 
-    X = np.asarray(X)  # Convert to numpy array
-    y = np.asarray(y)  # Convert to numpy array
-    # Data already normalized.
-    return X, y
+	X = np.asarray(X)  # Convert to numpy array
+	X = np.concatenate((ones, X), axis=1)  # Add bias term
+	y = np.asarray(y)  # Convert to numpy array
+	# Data already normalized.
+	return X, y
 
 def main():
 	preprocessData()
