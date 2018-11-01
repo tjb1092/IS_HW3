@@ -4,7 +4,7 @@ import math
 import random
 import time
 class NN:
-	def __init__(self, n, H, LR, f, c, UpperTarget, LowerTarget):
+	def __init__(self, n, H, LR, f, c, UpperTarget, LowerTarget, a):
 		self.n = n
 		self.f = f
 		self.c = c
@@ -12,6 +12,8 @@ class NN:
 		self.LR = LR
 		self.UT = UpperTarget
 		self.LT = LowerTarget
+		self.a = a
+		# Initialize weights
 		layers = []
 		for L in range(self.n+1):
 			# Get dims for weight matrix w/ dims i,j
@@ -28,7 +30,6 @@ class NN:
 				j = self.H[L-1]+1
 				sigma = math.sqrt(2/(H[L-1]+1))
 
-
 			w_ij = np.random.normal(0,sigma,(i,j))
 			print("Layer {}".format(L))
 			print(w_ij)
@@ -37,7 +38,7 @@ class NN:
 
 		self.layers = layers
 
-	def fit(self, X_q,y_q, tr_te):
+	def fit(self, X_q, y_q, tr_te):
 		#Forward and backward prop on one data point. Return error matricies
 		# Assume sigmoid activation functions for now.
 
@@ -58,9 +59,7 @@ class NN:
 		dot_p = np.dot(self.layers[self.n],f_s_aq[self.n-1])
 		y_hatq = 1./(1+np.exp(-dot_p))
 		f_s_aq.append(y_hatq)
-		#print("predictions")
-		#print(y_hatq)
-		#print("Forward Pass Complete")
+
 		if tr_te == 0:
 			# Backward pass: Compute output layer's errors
 			# Initialize using list comprehension
@@ -83,37 +82,41 @@ class NN:
 			for i, W in enumerate(self.layers):
 			    self.layers[i] = W + delW[i]
 
-			return delW
+			return delW, y_hatq
 
-	def update_weights(self, delW):
+	def update_weights(self, delW, past_delW, mode):
+
 		for i, W in enumerate(self.layers):
-			self.layers[i] = W + delW[i]
+			if mode == 1:
+				self.layers[i] = W + delW[i]  # First epoch doens't have prev. values
+			else:
+				self.layers[i] = W + delW[i] + self.a * past_delW[i]
 
 
 def main():
-	epochs = 1000
-	nn = NN(1, [200], [0.01, 0.01], 784, 10)
+	epochs = 500
+	nn = NN(1, [200], [0.01, 0.01], 784, 10, 0.75, 0.25, 0.5)
 
 	X, y = preprocessData()
 	data = create_train_test_split(X,y, 0.8)
 	mini_batch_per = 0.1
 	x_shape = data["x_train"].shape
 	last_time = time.time()
+	hit_rates = []
 	for epoch in range(epochs):
-		if (epoch % 10) == 0:
-			print(epoch)
-			print('loop took {:0.3f} seconds'.format(time.time()-last_time))
-			last_time = time.time()
+
 		# Pick mini-back of training data
 		# Sample 20% of the indices
 		batch_index = random.sample(range(x_shape[0] - 1), math.ceil(mini_batch_per*x_shape[0]))
 		x_train = data["x_train"][batch_index]
 		y_train = data["y_train"][batch_index]
-
+		correct = 0
 		for i, X in enumerate(x_train):
 			X = X.reshape(len(X),1)
 			y = y_train[i].reshape(10,1)
-			delW = nn.fit(X,y, 0)
+			delW, y_hatq = nn.fit(X,y, 0)
+			if np.argmax(y_hatq) == np.argmax(y):
+				correct += 1
 
 			if i == 0:
 				acc_delW = delW
@@ -121,11 +124,36 @@ def main():
 				# Accumulate weight change for all training points per epoch
 				for j, dW in enumerate(delW):
 					acc_delW[j] += dW
+		if epoch == 0:
+			past_delW = acc_delW
+			nn.update_weights(acc_delW,past_delW, 1)  # Apply accumulated weights at end of epoch.
+		else:
+			nn.update_weights(acc_delW,past_delW, 0)  # Apply accumulated weights at end of epoch.
+			past_delW = acc_delW
 
-		nn.update_weights(acc_delW)  # Apply accumulated weights at end of epoch.
+		if (epoch % 10) == 0:
+			print("Epoch: {}".format(epoch))
+			hit_rate = correct / (mini_batch_per*x_shape[0])
+			hit_rates.append(hit_rate)
+			print("Hit Rate: {}".format(hit_rate))
+			print('Epoch took {:0.3f} seconds'.format(time.time()-last_time))
+			last_time = time.time()
 
+	# Evaulate Test Accuracy
+	correct=0
+	confusion_Matrix = np.zeros((10,10))  # Initialize counts
+	for i, X in enumerate(data["x_test"]):
+		X = X.reshape(len(X),1)
+		y = data["y_test"][i].reshape(10,1)
+		delW, y_hatq = nn.fit(X,y, False)
+		print()
+		actual_class = np.argmax(y)
+		assigned_class = np.argmax(y_hatq)
+		confusion_Matrix[assigned_class, actual_class] += 1
+		if assigned_class == actual_class:
+			correct += 1
 
-
-
+	print("Test Accuracy: {}".format(correct/1000.))
+	print(confusion_Matrix)
 if __name__ == "__main__":
     main()
