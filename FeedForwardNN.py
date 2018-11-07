@@ -39,6 +39,7 @@ class NN:
 			layers.append(w_ij)
 
 		self.layers = layers
+		self.best_layers = layers
 
 	def fit(self, X_q, y_q, tr_te):
 		#Forward and backward prop on one data point. Return error matricies
@@ -94,21 +95,24 @@ class NN:
 			else:
 				self.layers[i] = W + delW[i] + self.a * past_delW[i]
 
-def save_data(weights,data,LR,alpha):
+def save_data(problem, weights,data,LR,alpha):
 	save_info = {"Weights": weights, "Data": data, "LR": LR, "alpha":alpha}
-	pickle.dump(save_info, open("cached_run/saved_data.p","wb"))
+	pickle.dump(save_info, open("cached_run/saved_data_{}.p".format(problem),"wb"))
 
 def main():
-	epochs = 500
-	nn = NN(1, [200], [0.01, 0.01], 784, 10, 0.75, 0.25, 0.5)
+	epochs = 700
+	nn = NN(1, [200], [0.02, 0.02], 784, 10, 0.75, 0.25, 0.6)
 
 	X, y = preprocessData()
 	data = create_train_test_split(X,y, 0.8)
 	mini_batch_per = 0.1
 	x_shape = data["x_train"].shape
 	last_time = time.time()
-	hit_rates = []
+	hit_rates_train = []
+	hit_rates_valid = []
 	epoch_arr = []
+	best_validation = 0
+	best_epoch = 0
 	for epoch in range(epochs):
 
 		# Pick mini-back of training data
@@ -138,15 +142,39 @@ def main():
 			past_delW = acc_delW
 
 		if (epoch % 10) == 0:
+			# measure hit rate on the validation set
+			valid_correct = 0
+			for i, X in enumerate(data["x_validate"]):
+				X = X.reshape(len(X),1)
+				y = data["y_validate"][i].reshape(10,1)
+				delW, y_hatq = nn.fit(X, y, 1)
+				if np.argmax(y_hatq) == np.argmax(y):
+					valid_correct += 1
+
+			valid_hit_rate = valid_correct/len(data["x_validate"])
+			hit_rates_valid.append(valid_hit_rate)
+
+
+
 			print("Epoch: {}".format(epoch))
 			hit_rate = correct / (mini_batch_per*x_shape[0])
-			hit_rates.append(hit_rate)
+			hit_rates_train.append(hit_rate)
 			epoch_arr.append(epoch)
-			print("Hit Rate: {}".format(hit_rate))
+
+			print("Training Hit Rate: {}".format(hit_rate))
+			print("Validation Hit Rate: {}".format(valid_hit_rate))
+			if valid_hit_rate > best_validation:
+				# If validation hit rate improves,
+				best_validation = valid_hit_rate
+				print("Validation Improved!")
+				nn.best_layers = nn.layers  # Store best weights
+				best_epoch = epoch
+			print("Best Epoch: {}".format(best_epoch))
 			print('Epoch took {:0.3f} seconds'.format(time.time()-last_time))
 			last_time = time.time()
 
 	# Evaulate Test Accuracy
+	nn.layers = nn.best_layers  # Roll-back to best weights
 	train_correct=0
 	confusion_Matrix_training = np.zeros((10,10))  # Initialize counts
 	for i, X in enumerate(data["x_train"]):
@@ -179,15 +207,17 @@ def main():
 
 	# Plot error rate per epoch
 	fig, ax = plt.subplots(figsize=(6,6))
-	error_rates = [1-x for x in hit_rates]
-	ax.plot(epoch_arr, error_rates, label="Training Error Rate")
+	error_rates_train = [1-x for x in hit_rates_train]
+	error_rates_valid = [1-x for x in hit_rates_valid]
+	ax.plot(epoch_arr, error_rates_train, label="Training Error Rate")
+	ax.plot(epoch_arr, error_rates_valid, label="Validation Error Rate")
 	ax.set_xlabel("Epoch")
 	ax.set_ylabel("Error Rate")
 	ax.set_title("Error Rates per Epoch")
 	ax.legend()
 	plt.show()
 
-	save_data(nn.layers, data, nn.LR, nn.a)
+	save_data("3_1", nn.best_layers, data, nn.LR, nn.a)
 
 if __name__ == "__main__":
     main()

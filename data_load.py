@@ -50,9 +50,13 @@ def create_train_test_split(x, y, percent):
 	# Index the test set
 	x_test = x[test_index]
 	y_test = y[test_index]
+	valid_percent = 0.125
+	validation_index = random.sample(range(len(x_train) - 1), math.ceil(valid_percent*len(x_train)))
+	x_validate = x_train[validation_index]
+	y_validate = y_train[validation_index]
 
 	# create data dict to pass up to other functions
-	return {"x_train": x_train, "y_train": y_train, "x_test": x_test, "y_test": y_test}
+	return {"x_train": x_train, "y_train": y_train, "x_test": x_test, "y_test": y_test, "x_validate": x_validate, "y_validate": y_validate}
 
 def preprocessData():
 	# Read in data
