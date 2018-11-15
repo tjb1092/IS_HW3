@@ -7,13 +7,24 @@ import pickle
 import matplotlib.pyplot as plt
 from FeedForwardNN import NN, save_data
 
+eval_net(nn, data, mode):
+	error=0
+	for i, X in enumerate(data["x_{}".format(mode)]):
+		X = X.reshape(len(X),1)
+		X_label = X[1:,0].reshape(len(X)-1,1)  # Remove bias term
+		delW, y_hatq = nn.fit(X,X_label, 1)
+		error += (1./2.)*np.sum(np.square(np.subtract(y_hatq,X_label)))
+
+	return error
+
+
 def main():
-	epochs = 1000
-	nn = NN(1, [100], [0.02, 0.02], 784, 784, 0.75, 0.25, 0.8)
+	epochs = 2000
+	nn = NN([100], [0.005, 0.005], 784, 784, 0.75, 0.25, 0.9)
 
 	X, y = preprocessData()
 	data = create_train_test_split(X,y, 0.8)
-	mini_batch_per = 0.1
+	mini_batch_per = 0.2
 	x_shape = data["x_train"].shape
 	last_time = time.time()
 	error_train = []
@@ -49,15 +60,8 @@ def main():
 			past_delW = acc_delW
 
 		if (epoch % 10) == 0:
-			# measure hit rate on the validation set
-			valid_error = 0
-			for i, X in enumerate(data["x_validate"]):
-				X = X.reshape(len(X),1)
-				X_label = X[1:,0].reshape(len(X)-1,1)  # Remove bias term
-				y = data["y_validate"][i].reshape(10,1)
-				delW, y_hatq = nn.fit(X, X_label, 1)
-				valid_error += (1./2.)*np.sum(np.square(np.subtract(y_hatq,X_label)))
-
+			# measure error on the validation set
+			valid_error = eval_net(nn, data, "validate")
 			error_valid.append(valid_error)
 			print("Epoch: {}".format(epoch))
 			error_train.append(acc_error)
@@ -77,21 +81,16 @@ def main():
 
 	# Evaulate Test Accuracy
 	nn.layers = nn.best_layers  # Roll-back to best weights
-	train_error=0
-	for i, X in enumerate(data["x_train"]):
-		X = X.reshape(len(X),1)
-		X_label = X[1:,0].reshape(len(X)-1,1)  # Remove bias term
-		delW, y_hatq = nn.fit(X,X_label, 1)
-		train_error += (1./2.)*np.sum(np.square(np.subtract(y_hatq,X_label)))
-
-	test_error = 0
-	for i, X in enumerate(data["x_test"]):
-		X = X.reshape(len(X),1)
-		X_label = X[1:,0].reshape(len(X)-1,1)  # Remove bias term
-		delW, y_hatq = nn.fit(X,X_label, False)
-		test_error += (1./2.)*np.sum(np.square(np.subtract(y_hatq,X_label)))
-		#plt.imshow(y_hatq.reshape(28,28).T)
-		#plt.show()
+	train_error = eval_net(nn, data, "train")
+	test_error = eval_net(nn, data, "train")
+	"""
+	fig, ax = plt.subplots()
+	ax.imshow(X_label.reshape(28,28).T)
+	fig.show()
+	fig2, ax2 = plt.subplots()
+	ax2.imshow(y_hatq.reshape(28,28).T)
+	plt.show()
+	"""
 
 	print("Training Error (J): {}".format(train_error))
 	print("Test Error (J): {}".format(test_error))
@@ -107,14 +106,14 @@ def main():
 	fig.show()
 
 
-	# Plot all of the images
+	# Plot all of the features
 	fig2, axarr = plt.subplots(10, 10, figsize=(10, 10))
 	W = nn.best_layers[0]
 	for i in range(10):
 		for j in range(10):
 			im = W[i*10+j,1:].reshape(28,28)
 			axarr[i, j].imshow(im.T,cmap='gray')
-
+			axarr[i,j].axis('off')
 	plt.show()
 	save_data("3_2", nn.best_layers, data, nn.LR, nn.a)
 

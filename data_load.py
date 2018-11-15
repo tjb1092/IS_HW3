@@ -14,7 +14,6 @@ def data_load(fn):
 		parsedData = data.split("\t")  # Split via space deliminator
 		parsedData[-1] = parsedData[-1][:-1]  #remove new-line character
 		# Create data tuple by casting text to floats and add label
-
 		row = np.zeros((784))
 		for i, feature in enumerate(parsedData):
 			row[i] = float(feature)
@@ -23,6 +22,7 @@ def data_load(fn):
 	return X_array
 
 def label_load(fn):
+	# Load labels as 1-hot array
 	label_array = []
 	with open(fn) as f:
 		contents = f.readlines()
@@ -50,8 +50,10 @@ def create_train_test_split(x, y, percent):
 	# Index the test set
 	x_test = x[test_index]
 	y_test = y[test_index]
+	# Repeat process to get the validation set.
 	valid_percent = 0.125
 	validation_index = random.sample(range(len(x_train) - 1), math.ceil(valid_percent*len(x_train)))
+	# Index the validation set.
 	x_validate = x_train[validation_index]
 	y_validate = y_train[validation_index]
 
@@ -59,11 +61,11 @@ def create_train_test_split(x, y, percent):
 	return {"x_train": x_train, "y_train": y_train, "x_test": x_test, "y_test": y_test, "x_validate": x_validate, "y_validate": y_validate}
 
 def preprocessData():
-	# Read in data
+	# Set the filenames for the data.
 	Xfn = "MNISTnumImages5000.txt"
 	yfn = "MNISTnumLabels5000.txt"
 
-	# Pass data array into functions to append everything together
+	# Load the data Nand label files
 	X = data_load(Xfn)
 	y = label_load(yfn)
 	ones = np.ones((len(X), 1))
