@@ -1,8 +1,13 @@
+"""
+data_load.py
+using Python 3.5/6
+Helper script for loading the data in HW 3. Not ran directly. 
+"""
+
 import numpy as np
 import random
 import math
 import matplotlib.pyplot as plt
-
 
 def data_load(fn):
 	# Open text file and create and read in each line
@@ -35,14 +40,13 @@ def label_load(fn):
 
 	return label_array
 
-
 def create_train_test_split(x, y, percent):
 	# Create Train/Test Split
 	d_len = len(x)
 	# Sample 80% of the indices
 	train_index = random.sample(range(d_len - 1), math.ceil(percent*d_len))
 	# Compute the remaining 20% of samples for the test set
-	test_index = list(set(range(d_len-1)) - set(train_index))
+	test_index = list(set(range(d_len)) - set(train_index))
 
 	# Index out the train set from the total set
 	x_train = x[train_index]
@@ -53,9 +57,15 @@ def create_train_test_split(x, y, percent):
 	# Repeat process to get the validation set.
 	valid_percent = 0.125
 	validation_index = random.sample(range(len(x_train) - 1), math.ceil(valid_percent*len(x_train)))
+	# Compute the remaining 20% of samples for the test set
+	train_index = list(set(range(len(x_train))) - set(validation_index))
 	# Index the validation set.
 	x_validate = x_train[validation_index]
 	y_validate = y_train[validation_index]
+
+	# Reindex the training set to remove the validation set.
+	x_train = x[train_index]
+	y_train = y[train_index]
 
 	# create data dict to pass up to other functions
 	return {"x_train": x_train, "y_train": y_train, "x_test": x_test, "y_test": y_test, "x_validate": x_validate, "y_validate": y_validate}

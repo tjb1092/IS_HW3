@@ -1,3 +1,11 @@
+"""
+FeedForwardNN.py
+using Python 3.5/6
+Used for problem 1 in HW 3. It can be ran through a terminal using the command
+"python3 Autoencoder.py" or "python Autoencoder.py" depending on how python is setup.
+It will run as long as a folder "cached_run" is created and the
+script "data_load.py" is in the same directory.
+"""
 import numpy as np
 from data_load import preprocessData, create_train_test_split
 import math
@@ -5,6 +13,7 @@ import random
 import time
 import pickle
 import matplotlib.pyplot as plt
+
 class NN:
 	def __init__(self, H, LR, f, c, a):
 		# Store parameters into class.
@@ -33,9 +42,6 @@ class NN:
 			# Initialize the weight matrix as a Gaussian distribution
 			# proportional to the size of the hidden layers
 			w_ij = np.random.normal(0,sigma,(i,j))
-			#print("Layer {}".format(L))
-			#print(w_ij)
-			#print(w_ij.shape)
 			# Append into layers strucuture that holds all weight matricies.
 			layers.append(w_ij)
 		# Define class params for the weight matricies and a "best" weight matrix.
@@ -104,10 +110,12 @@ class NN:
 			else:
 				self.layers[i] = W + delW[i] + self.a * past_delW[i]
 
+
 def save_data(problem, weights,data,LR,alpha):
 	# Pickle the data to save for later for HW 4.
 	save_info = {"Weights": weights, "Data": data, "LR": LR, "alpha":alpha}
 	pickle.dump(save_info, open("cached_run/saved_data_{}.p".format(problem),"wb"))
+	print("Data Saved!")
 
 def eval_network(nn, data, mode):
 	correct=0
@@ -123,14 +131,15 @@ def eval_network(nn, data, mode):
 			correct += 1
 
 	return confusion_Matrix, correct
+
 def main():
 	# Parameter definitions and intializations.
-	h_l = [150]
+	h_l = [100]
 	LRs = [0.05]
 	alphas = [0.7]
-
-	epoch_lst = [1000]
+	epoch_lst = [500]
 	mini_batch_per = 0.1
+
 	best_validation, best_epoch = 0, 0
 
 	# Perform gridsearch over potential hyperparameters
