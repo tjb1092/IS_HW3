@@ -54,6 +54,47 @@ def eval_net(nn, data, mode):
 	errors.insert(0, total_error)  # Prepend total_error for plotting
 	return errors
 
+def plot_errorbar(train_errors, test_errors):
+	# Plot error bar graph.
+	index = np.arange(11)
+	bar_width = 0.35
+	fig, ax = plt.subplots()
+	rects1 = ax.bar(index, train_errors, bar_width,
+					alpha=0.6, color='b', label='Train')
+	rects2 = ax.bar(index+bar_width, test_errors, bar_width,
+					alpha=0.6, color='r', label='Test')
+	ax.set_xlabel("Digits")
+	ax.set_ylabel("Accumulated Error")
+	ax.set_title("Accumulated Error per Digit")
+	ax.set_xticks(index+ bar_width / 2)
+	ax.set_xticklabels(('Total', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'))
+	ax.legend()
+	fig.show()
+	return fig, ax
+
+def plot_errortime(epoch_arr, error_train, error_valid):
+	# Plot error rate per epoch
+	fig, ax = plt.subplots(figsize=(6,6))
+	ax.plot(epoch_arr, error_train, label="Training Error")
+	ax.plot(epoch_arr, error_valid, label="Validation Error")
+	ax.set_xlabel("Epoch")
+	ax.set_ylabel("Error (J)")
+	ax.set_title("Error per Epoch")
+	ax.legend()
+	fig.show()
+	return fig, ax
+
+def plot_features(W):
+	# Plot all of the features
+	fig, axarr = plt.subplots(10, 10, figsize=(10, 10))
+	for i in range(10):
+		for j in range(10):
+			im = W[i*10+j,1:].reshape(28,28)
+			axarr[i, j].imshow(im.T,cmap='gray')
+			axarr[i,j].axis('off')
+	fig.show()
+	return fig, axarr
+
 def main():
 
 	# Initialize the network
@@ -122,40 +163,9 @@ def main():
 	train_errors = eval_net(nn, data, "train")
 	test_errors = eval_net(nn, data, "test")
 
-	# Plot error bar graph.
-	index = np.arange(11)
-	bar_width = 0.35
-	fig, ax = plt.subplots()
-	rects1 = ax.bar(index, train_errors, bar_width,
-					alpha=0.6, color='b', label='Train')
-	rects2 = ax.bar(index+bar_width, test_errors, bar_width,
-	 				alpha=0.6, color='r', label='Test')
-	ax.set_xlabel("Digits")
-	ax.set_ylabel("Accumulated Error")
-	ax.set_title("Accumulated Error per Digit")
-	ax.set_xticks(index+ bar_width / 2)
-	ax.set_xticklabels(('Total', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'))
-	ax.legend()
-	fig.show()
-
-	# Plot error rate per epoch
-	fig2, ax2 = plt.subplots(figsize=(6,6))
-	ax2.plot(epoch_arr, error_train, label="Training Error")
-	ax2.plot(epoch_arr, error_valid, label="Validation Error")
-	ax2.set_xlabel("Epoch")
-	ax2.set_ylabel("Error (J)")
-	ax2.set_title("Error per Epoch")
-	ax2.legend()
-	fig2.show()
-
-	# Plot all of the features
-	fig3, axarr = plt.subplots(10, 10, figsize=(10, 10))
-	W = nn.best_layers[0]
-	for i in range(10):
-		for j in range(10):
-			im = W[i*10+j,1:].reshape(28,28)
-			axarr[i, j].imshow(im.T,cmap='gray')
-			axarr[i,j].axis('off')
+	plot_errorbar(train_errors, test_errors)
+	plot_errortime(epoch_arr, error_train, error_valid)
+	plot_features(W)
 	plt.show()
 
 	# Store the network, data, and parameters for future use.

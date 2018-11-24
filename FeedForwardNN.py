@@ -110,12 +110,37 @@ class NN:
 			else:
 				self.layers[i] = W + delW[i] + self.a * past_delW[i]
 
+	def load_weights(self, layers):
+		# Override weight matricies with loaded weights.
+		self.layers = layers
+		self.best_layers = layers
+
+	def append_layer(self, layer_len, index):
+		i = self.c
+		self.n += 1
+		L = self.n
+		j = self.H[L-1]+1
+		sigma = math.sqrt(2/(H[L-1]+1))
+		# Initialize the weight matrix as a Gaussian distribution
+		# proportional to the size of the hidden layers
+		w_ij = np.random.normal(0,sigma,(i,j))
+		# Append into layers strucuture that holds all weight matricies.
+		self.layers.append(w_ij)
+
+	def pop_layer(self):
+		self.layers = self.layers[:-1]
+		self.best_layers = self.best_layers[:-1]
+		self.n -= 1
+
 
 def save_data(problem, weights,data,LR,alpha):
 	# Pickle the data to save for later for HW 4.
 	save_info = {"Weights": weights, "Data": data, "LR": LR, "alpha":alpha}
 	pickle.dump(save_info, open("cached_run/saved_data_{}.p".format(problem),"wb"))
 	print("Data Saved!")
+
+def load_data(fn):
+	return pickle.load(open(fn, "rb"))
 
 def eval_network(nn, data, mode):
 	correct=0
