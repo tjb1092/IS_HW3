@@ -34,7 +34,7 @@ def eval_net(nn, data, mode):
 		for i, X in enumerate(data["x_{}".format(mode)][i_list]):
 			X = X.reshape(len(X),1)
 			X_label = X[1:,0].reshape(len(X)-1,1)  # Remove bias term
-			delW, y_hatq = nn.fit(X,X_label, 1)
+			delW, y_hatq, f_s_aq = nn.fit(X,X_label, 1)
 			digit_error += (1./2.)*np.sum(np.square(np.subtract(X_label, y_hatq)))
 
 			if plt_reconstruct and mode == "test":
@@ -96,7 +96,7 @@ def plot_features(W):
 	return fig, axarr
 
 def main():
-
+	savedata = False
 	# Initialize the network
 	epochs = 400
 	nn = NN([100], [0.01, 0.01], 784, 784, 0.7)
@@ -111,6 +111,7 @@ def main():
 	epoch_arr = []
 	best_validation = 1e6  # Initialize "best error" extremely high so it will be overridden.
 	best_epoch = 0
+
 	for epoch in range(epochs):
 
 		# Pick mini-back of training data
@@ -122,7 +123,7 @@ def main():
 			X = X.reshape(len(X),1)
 			X_label = X[1:,0].reshape(len(X)-1,1)  # Remove bias term
 
-			delW, y_hatq = nn.fit(X, X_label, 0)
+			delW, y_hatq, f_s_aq = nn.fit(X, X_label, 0)
 			acc_error += (1./2.)*np.sum(np.square(np.subtract(X_label, y_hatq)))  # Error formula
 			if i == 0:
 				acc_delW = delW
@@ -165,11 +166,12 @@ def main():
 
 	plot_errorbar(train_errors, test_errors)
 	plot_errortime(epoch_arr, error_train, error_valid)
-	plot_features(W)
+	plot_features(nn.layers[0])
 	plt.show()
 
 	# Store the network, data, and parameters for future use.
-	save_data("3_2", nn.best_layers, data, nn.LR, nn.a)
+	if savedata:
+		save_data("3_2", nn.best_layers, data, nn.LR, nn.a)
 
 if __name__ == "__main__":
     main()

@@ -20,4 +20,14 @@ Todo:
 
 4.) Add a threshold to prevent learning if "good enough" i.e. above a target value.
 6.) Maybe validate on the other portion of the training data that was not used in that batch.
-10.) Do a grid-search to find the best test-accuracy. 
+10.) Do a grid-search to find the best test-accuracy.
+
+
+# IS_HW4
+
+Building off of what I had previously to implement the modifications for HW4
+
+1.) Conditionally implement sparseness penalty (done)
+2.) Conditionally implement weight decay (done)
+3.) Apply different loss functions for different layers. (done)
+4.) Selectively freeze different layers.  (done)

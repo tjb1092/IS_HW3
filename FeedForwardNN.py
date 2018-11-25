@@ -15,7 +15,7 @@ import pickle
 import matplotlib.pyplot as plt
 
 class NN:
-	def __init__(self, H, LR, f, c, a):
+	def __init__(self, H, LR, f, c, a=0.7, B=1, p=0.05, l=0.0001):
 		# Store parameters into class.
 		self.H = H
 		self.n = len(self.H)
@@ -23,8 +23,13 @@ class NN:
 		self.f = f
 		self.c = c
 		self.a = a
+		self.B = B
+		self.p = p
+		self.l = l
 		# Initialize weights
 		layers = []
+		masks = []
+		regularize = []  # Keep track of what to implement regularizations on
 		for L in range(self.n+1):
 			# Get dims and sigma for weight matrix w/ dims i,j
 			if L == 0:
@@ -44,11 +49,15 @@ class NN:
 			w_ij = np.random.normal(0,sigma,(i,j))
 			# Append into layers strucuture that holds all weight matricies.
 			layers.append(w_ij)
+			masks.append(True)  # Make layer trainable
+			regularize.append(True)  # Apply regularization to layertrainable
 		# Define class params for the weight matricies and a "best" weight matrix.
 		self.layers = layers
 		self.best_layers = layers
+		self.masks = masks
+		self.regularize = regularize
 
-	def fit(self, X_q, y_q, tr_te):
+	def fit(self, X_q, y_q, tr_te, p_hat=[]):
 		# Forward and backward prop on one data point. Return error matricies
 		# and weight change matricies.
 		# Assume sigmoid activation functions.
@@ -81,25 +90,50 @@ class NN:
 		if tr_te == 0:
 			# Backward pass: Compute output layer's errors
 			# Compute last layer's error using sigmoid function
-			delq[-1] = (1-y_hatq)*y_hatq*(y_q - y_hatq)
+			if self.masks[-1]:
+				train = 1
+			else:
+				train = 0  # If layer is frozen, don't modify the weights.
+			# Work assuming that layer is frozen before training starts.
+			# Else, momentum will still change weights a bit.
+
+			delq[-1] = (1-y_hatq)*y_hatq*(y_q - y_hatq) * train
 			# Compute last layer's weight changes
-			delW[-1] = self.LR[self.n] * np.dot(delq[-1], f_s_aq[self.n-1].T)
+			if  self.regularize[-1]:
+				weight_decay = self.l * self.layers[-1]
+				delW[-1] = self.LR[self.n] * (np.dot(delq[-1], f_s_aq[self.n-1].T)+weight_decay)
+			else:
+				delW[-1] = self.LR[self.n] * np.dot(delq[-1], f_s_aq[self.n-1].T)
+
 			for L in range(self.n-1, -1, -1):
 				# Next layer:
 				# Error: h[L]*W*delq[L+1]
-				delq[L] = ((1-f_s_aq[L])*f_s_aq[L])[1:]*np.dot(self.layers[L+1][:,1:].T,delq[L+1])
+				if self.regularize[L]:
+					sparse_pen = self.B*((1-self.p)/(1-p_hat[L]) - (self.p/p_hat[L]))
+
+					delq[L] = ((1-f_s_aq[L])*f_s_aq[L])[1:]*(np.dot(self.layers[L+1][:,1:].T,delq[L+1])-sparse_pen)
+				else:
+					delq[L] = ((1-f_s_aq[L])*f_s_aq[L])[1:]*np.dot(self.layers[L+1][:,1:].T,delq[L+1])
+
 				# pick either the input or one of the saved layer's outputs
 				if L==0:
 					inputQ = X_q.T
 				else:
 					inputQ = f_s_aq[L-1].T
+
 				# Compute the layer's weight change matrix.
-				delW[L] = self.LR[L]*np.dot(delq[L],inputQ)
+				if self.regularize[L]:
+					weight_decay = self.l * self.layers[L]
+					delW[L] = self.LR[L]*(np.dot(delq[L],inputQ) + weight_decay)
+				else:
+					delW[L] = self.LR[L]*np.dot(delq[L],inputQ)
+				#print(delW)
+
 
 			# Apply weight update after data point has been applied
 			for i, W in enumerate(self.layers):
 				self.layers[i] = W + delW[i]
-		return delW, y_hatq
+		return delW, y_hatq, f_s_aq
 
 	def update_weights(self, delW, past_delW, mode):
 		# Apply the delW matrix to the layer weights
@@ -132,6 +166,10 @@ class NN:
 		self.best_layers = self.best_layers[:-1]
 		self.n -= 1
 
+	def freeze_layers(self, lst):
+		for i in lst:
+			self.mask[i] = False
+
 
 def save_data(problem, weights,data,LR,alpha):
 	# Pickle the data to save for later for HW 4.
@@ -139,16 +177,13 @@ def save_data(problem, weights,data,LR,alpha):
 	pickle.dump(save_info, open("cached_run/saved_data_{}.p".format(problem),"wb"))
 	print("Data Saved!")
 
-def load_data(fn):
-	return pickle.load(open(fn, "rb"))
-
 def eval_network(nn, data, mode):
 	correct=0
 	confusion_Matrix = np.zeros((10,10))  # Initialize counts
 	for i, X in enumerate(data["x_{}".format(mode)]):
 		X = X.reshape(len(X),1)
 		y = data["y_{}".format(mode)][i].reshape(10,1)
-		delW, y_hatq = nn.fit(X,y, 1)
+		delW, y_hatq, f_s_aq = nn.fit(X,y, 1)
 		actual_class = np.argmax(y)
 		assigned_class = np.argmax(y_hatq)
 		confusion_Matrix[assigned_class, actual_class] += 1
@@ -166,7 +201,7 @@ def main():
 	mini_batch_per = 0.1
 
 	best_validation, best_epoch = 0, 0
-
+	savedata = False
 	# Perform gridsearch over potential hyperparameters
 	for h in h_l:
 		for LR in LRs:
@@ -199,7 +234,7 @@ def main():
 							X = X.reshape(len(X),1)
 							y = y_train[i].reshape(10,1)
 							# Perform forward and backward passes.
-							delW, y_hatq = nn.fit(X,y, 0)
+							delW, y_hatq, f_s_aq = nn.fit(X,y, 0)
 							# Determine if the correct choice was made.
 							if np.argmax(y_hatq) == np.argmax(y):
 								correct += 1
@@ -223,7 +258,7 @@ def main():
 							for i, X in enumerate(data["x_validate"]):
 								X = X.reshape(len(X),1)
 								y = data["y_validate"][i].reshape(10,1)
-								delW, y_hatq = nn.fit(X, y, 1)
+								delW, y_hatq, f_s_aq = nn.fit(X, y, 1)
 								if np.argmax(y_hatq) == np.argmax(y):
 									valid_correct += 1
 							# Compute validation hit rate.
@@ -272,7 +307,8 @@ def main():
 					ax.legend()
 					plt.show()
 	# Save the data for future use in HW4.
-	save_data("3_1", nn.best_layers, data, nn.LR, nn.a)
+	if savedata:
+		save_data("3_1", nn.best_layers, data, nn.LR, nn.a)
 
 if __name__ == "__main__":
     main()

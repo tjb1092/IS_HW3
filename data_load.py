@@ -1,7 +1,7 @@
 """
 data_load.py
 using Python 3.5/6
-Helper script for loading the data in HW 3. Not ran directly. 
+Helper script for loading the data in HW 3. Not ran directly.
 """
 
 import numpy as np
@@ -85,9 +85,6 @@ def preprocessData():
 	y = np.asarray(y)  # Convert to numpy array
 	# Data already normalized.
 	return X, y
-
-def main():
-	preprocessData()
 
 if __name__ == "__main__":
 	main()
