@@ -31,3 +31,10 @@ Building off of what I had previously to implement the modifications for HW4
 2.) Conditionally implement weight decay (done)
 3.) Apply different loss functions for different layers. (done)
 4.) Selectively freeze different layers.  (done)
+
+
+best network so far. Take HW4_1's weights, pop off the layer, put on a randomized
+classification layer. Then, set the hidden layer LR to 0.001 and the output LR to
+0.05 and train it for about 500 epochs. Got 96.3% Accuracy!
+
+FYI -- Accuracy got w/ first classification network on the data set used in HW 4 is 95.8%

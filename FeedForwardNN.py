@@ -49,7 +49,7 @@ class NN:
 			w_ij = np.random.normal(0,sigma,(i,j))
 			# Append into layers strucuture that holds all weight matricies.
 			layers.append(w_ij)
-			masks.append(True)  # Make layer trainable
+			masks.append(False)  # True = Frozen
 			regularize.append(True)  # Apply regularization to layertrainable
 		# Define class params for the weight matricies and a "best" weight matrix.
 		self.layers = layers
@@ -90,14 +90,8 @@ class NN:
 		if tr_te == 0:
 			# Backward pass: Compute output layer's errors
 			# Compute last layer's error using sigmoid function
-			if self.masks[-1]:
-				train = 1
-			else:
-				train = 0  # If layer is frozen, don't modify the weights.
-			# Work assuming that layer is frozen before training starts.
-			# Else, momentum will still change weights a bit.
 
-			delq[-1] = (1-y_hatq)*y_hatq*(y_q - y_hatq) * train
+			delq[-1] = (1-y_hatq)*y_hatq*(y_q - y_hatq)
 			# Compute last layer's weight changes
 			if  self.regularize[-1]:
 				weight_decay = self.l * self.layers[-1]
@@ -105,6 +99,8 @@ class NN:
 			else:
 				delW[-1] = self.LR[self.n] * np.dot(delq[-1], f_s_aq[self.n-1].T)
 
+			if self.masks[-1]:
+				delW[-1] = np.zeros(delW[-1].shape)
 			for L in range(self.n-1, -1, -1):
 				# Next layer:
 				# Error: h[L]*W*delq[L+1]
@@ -128,6 +124,8 @@ class NN:
 				else:
 					delW[L] = self.LR[L]*np.dot(delq[L],inputQ)
 				#print(delW)
+				if self.masks[L]:
+					delW[L] = np.zeros(delW[L].shape)
 
 
 			# Apply weight update after data point has been applied
@@ -147,17 +145,18 @@ class NN:
 	def load_weights(self, layers):
 		# Override weight matricies with loaded weights.
 		self.layers = layers
-		self.best_layers = layers
+		self.best_layers = self.layers
 
-	def append_layer(self, layer_len, index):
-		i = self.c
+	def append_layer(self, c):
+		# Assuming that we are sticking on a new output layer on
+		self.c = c
 		self.n += 1
 		L = self.n
 		j = self.H[L-1]+1
-		sigma = math.sqrt(2/(H[L-1]+1))
+		sigma = math.sqrt(2/(self.H[L-1]+1))
 		# Initialize the weight matrix as a Gaussian distribution
 		# proportional to the size of the hidden layers
-		w_ij = np.random.normal(0,sigma,(i,j))
+		w_ij = np.random.normal(0,sigma,(c,j))
 		# Append into layers strucuture that holds all weight matricies.
 		self.layers.append(w_ij)
 
@@ -168,7 +167,7 @@ class NN:
 
 	def freeze_layers(self, lst):
 		for i in lst:
-			self.mask[i] = False
+			self.masks[i] = True
 
 
 def save_data(problem, weights,data,LR,alpha):
@@ -191,6 +190,20 @@ def eval_network(nn, data, mode):
 			correct += 1
 
 	return confusion_Matrix, correct
+
+def plot_errorrate(epoch_arr, hit_rates_train, hit_rates_valid):
+	# Plot error rate per epoch
+	fig, ax = plt.subplots(figsize=(6,6))
+	error_rates_train = [1-x for x in hit_rates_train]
+	error_rates_valid = [1-x for x in hit_rates_valid]
+	ax.plot(epoch_arr, error_rates_train, label="Training Error Rate")
+	ax.plot(epoch_arr, error_rates_valid, label="Validation Error Rate")
+	ax.set_xlabel("Epoch")
+	ax.set_ylabel("Error Rate")
+	ax.set_title("Error Rates per Epoch")
+	ax.legend()
+	fig.show()
+	return fig, ax
 
 def main():
 	# Parameter definitions and intializations.
@@ -296,15 +309,7 @@ def main():
 					print(confusion_Matrix_testing)
 
 					# Plot error rate per epoch
-					fig, ax = plt.subplots(figsize=(6,6))
-					error_rates_train = [1-x for x in hit_rates_train]
-					error_rates_valid = [1-x for x in hit_rates_valid]
-					ax.plot(epoch_arr, error_rates_train, label="Training Error Rate")
-					ax.plot(epoch_arr, error_rates_valid, label="Validation Error Rate")
-					ax.set_xlabel("Epoch")
-					ax.set_ylabel("Error Rate")
-					ax.set_title("Error Rates per Epoch")
-					ax.legend()
+					plot_errorrate(epoch_arr, hit_rates_train, hit_rates_valid)
 					plt.show()
 	# Save the data for future use in HW4.
 	if savedata:

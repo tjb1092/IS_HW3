@@ -1,5 +1,4 @@
 import numpy as np
-from data_load import preprocessData, create_train_test_split
 import math
 import random
 import time
@@ -13,7 +12,7 @@ def main():
 	# Load previous data
 	saved_data = pickle.load(open("cached_run/saved_data_3_2.p", "rb"))
 	data = saved_data["Data"]
-	savedata = True
+	savedata = False
 	# Initialize the network
 	epochs = 3000
 	H = [100]
@@ -61,9 +60,7 @@ def main():
 					h_xq_acc[j] = h_xq_acc[j] + h_j_xq[j][1:]
 
 		p_hat = [np.divide(x,len(x_train)) for x in h_xq_acc]  # Compute p_hat_j for all neurons.
-		sparse_pen = nn.B*((1-nn.p)/(1-p_hat[0]) - (nn.p/p_hat[0]))
-		#print(sparse_pen)
-		#input("pause")
+
 		# Now accumulate the weight changes
 		for i, X in enumerate(x_train):
 			X = X.reshape(len(X),1)
@@ -84,7 +81,6 @@ def main():
 		else:
 			nn.update_weights(acc_delW, past_delW, 0)  # Apply accumulated weights at end of epoch.
 			past_delW = acc_delW
-
 
 		if (epoch % 10) == 0:
 			# measure error on the validation set
