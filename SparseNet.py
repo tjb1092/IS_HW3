@@ -1,3 +1,12 @@
+"""
+SparseNet.py
+using Python 3.5/6
+Used for problem 1 in HW 4. It can be ran through a terminal using the command
+"python3 SparseNet.py" or "python SparseNet.py" depending on how python is setup.
+It will run as long as a folder called "cached_run" is created, the pickled file
+"saved_data_3_2.p" is placed inside of that folder, and scripts "data_load.py",
+"FeedForwardNN", and "Autoencoder" are in the top directory.
+"""
 import numpy as np
 import math
 import random
@@ -20,10 +29,6 @@ def main():
 	c = 784
 	LR = 0.0005
 	a = 0.7
-	#p=0.1, B = 1, LR = 0.0005, a=0.7, l=0.0001 bout tied w/ 1st
-	#p=0.1, B = 1, LR = 0.0005, a=0.7, l=0.00005 best so far
-	#p=0.05, B = 1, LR = 0.001, a=0.7, l=0.00005 2nd best
-
 	p = 0.1
 	B = 1
 	l = 0.00005

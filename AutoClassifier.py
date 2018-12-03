@@ -1,3 +1,13 @@
+"""
+AutoClassifier.py
+using Python 3.5/6
+Used for problem 1 in HW 4. It can be ran through a terminal using the command
+"python3 AutoClassifier.py" or "python AutoClassifier.py" depending on how python
+is setup. It will run as long as a folder called "cached_run" is created and the
+pickled files "saved_data_3_1.p", "saved_data_3_2.p", and "saved_data_3_3.p"
+are placed inside of that folder, and scripts "FeedForwardNN" and "Autoencoder"
+are in the top directory.
+"""
 import numpy as np
 import math
 import random
@@ -7,7 +17,10 @@ import matplotlib.pyplot as plt
 from FeedForwardNN import NN, save_data, eval_network, plot_errorrate
 from Autoencoder import plot_features
 
+
 def classification_network(fn_load, savedata, fn_save, retrain_output, params):
+	# Perform the process of classification used in HW3 P1 with pretrained auto-encoders
+
 	# Load previous data
 	saved_data = pickle.load(open(fn_load, "rb"))
 	data = saved_data["Data"]
@@ -22,8 +35,11 @@ def classification_network(fn_load, savedata, fn_save, retrain_output, params):
 
 	nn = NN(H, [LR, LR], f, c, a)
 
+	# Load previous weights into network
 	nn.load_weights(saved_data["Weights"])
+
 	if retrain_output:
+		# Add new randomized classification output layer
 		nn.pop_layer()
 		nn.append_layer(c)
 		freeze_lst = [0]  # Freeze hidden layer
@@ -31,12 +47,15 @@ def classification_network(fn_load, savedata, fn_save, retrain_output, params):
 	nn.regularize = [False, False]  # Only perform LMS on network for training
 
 	mini_batch_per = 0.2
+
+	# Initialize sentinel structures
 	x_shape = data["x_train"].shape
 	last_time = time.time()
 	hit_rates_train = []
 	hit_rates_valid = []
 	epoch_arr = []
 	best_validation, best_epoch = 0, 0
+
 	for epoch in range(epochs):
 
 		# Pick mini-back of training data
@@ -110,7 +129,9 @@ def classification_network(fn_load, savedata, fn_save, retrain_output, params):
 	print("Test Accuracy: {}".format(test_correct/len(data["x_test"])))
 	print(confusion_Matrix_testing)
 
+	# Plot error rate
 	plot_errorrate(epoch_arr, hit_rates_train, hit_rates_valid)
+	# Plot hidden layer features
 	plot_features(nn.layers[0])
 	plt.show()
 
@@ -125,7 +146,7 @@ def main():
 		fn_load = "cached_run/saved_data_3_1.p"
 		savedata = True
 		fn_save = "3_4_c"
-		params = {"epochs":0, "H":[100], "f":784, "c":10, "LR":0.01, "a":0.7}
+		params = {"epochs":0, "H":[100], "f":784, "c":10, "LR":0, "a":0.7}
 		retrain_output = False
 		classification_network(fn_load, savedata, fn_save, retrain_output, params)
 
@@ -147,7 +168,7 @@ def main():
 		fn_load = "cached_run/saved_data_3_3.p"
 		savedata = True
 		fn_save = "3_4_b"
-		params = {"epochs":500, "H":[100], "f":784, "c":10, "LR":0.05, "a":0.5} #best 92.9%
+		params = {"epochs":500, "H":[100], "f":784, "c":10, "LR":0.05, "a":0.5}
 		retrain_output = True
 		classification_network(fn_load, savedata, fn_save, retrain_output, params)
 

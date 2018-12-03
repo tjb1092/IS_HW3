@@ -161,11 +161,13 @@ class NN:
 		self.layers.append(w_ij)
 
 	def pop_layer(self):
+		# Remove the output layer
 		self.layers = self.layers[:-1]
 		self.best_layers = self.best_layers[:-1]
 		self.n -= 1
 
 	def freeze_layers(self, lst):
+		# Selectively freeze layers based on lst
 		for i in lst:
 			self.masks[i] = True
 
